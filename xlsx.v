@@ -63,14 +63,23 @@ fn (mut xlsx XLSX) parse_sheet(shared_strings []string) ![][]string {
       value := if t := col.attributes['t'] {
         match t {
           's' { shared_strings[strconv.parse_int(v, 10, 0)!] or { v }}
+          'e' { '' }
           else { v }
         }
       } else {
         v
       }
+      if ci >= values.len {
+        unsafe {
+          values.grow_len(ci - values.len + 1)
+        }
+      }
+      // println('ci=${ci}, v=${v}, value=${value}')
       values[ci] = value
     }
-    data << values
+    if values.any(it != '') {
+      data << values
+    }
   }
 
   return data 
