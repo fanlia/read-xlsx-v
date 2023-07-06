@@ -77,7 +77,7 @@ fn (mut xlsx XLSX) parse_sheet(shared_strings []string) ![][]string {
       // println('ci=${ci}, v=${v}, value=${value}')
       values[ci] = value
     }
-    if values.any(it != '') {
+    if values.any(it.trim_space() != '') {
       data << values
     }
   }
