@@ -78,9 +78,11 @@ fn XMLParser.new(source string) []&Tag {
 
 fn (mut p XMLParser) parse() {
   for p.parse_tag() {}
-  for tag in p.tags {
+  for i, tag in p.tags {
     if tag.parent_index > -1 {
-      p.tags[tag.parent_index].children << tag
+      mut parent := p.tags[tag.parent_index]
+      parent.children << tag
+      p.tags[i].parent = parent
     }
   }
 }
@@ -141,6 +143,7 @@ pub mut:
   level int
   text string
   children []&Tag
+  parent &Tag = unsafe { nil }
 }
 
 fn (tag &Tag) text() string {
