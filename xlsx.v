@@ -2,7 +2,6 @@
 module read_xlsx_v
 
 import szip
-import net.html
 import strconv
 
 struct XLSX {
@@ -31,9 +30,8 @@ fn (mut xlsx XLSX) open_xml(name string) !string {
 
 fn (mut xlsx XLSX) parse_shared_strings() ![]string {
   xml := xlsx.open_xml('xl/sharedStrings.xml')!
-  doc := html.parse(xml)
-  si_list := doc.get_tags(name: 'si')
-  return si_list.map(it.text())
+  tags := XMLParser.new(xml)
+  return tags.filter(it.name == 'si').map(it.text())
 }
 
 fn r2ci(r string) !int {
@@ -48,8 +46,8 @@ fn r2ci(r string) !int {
 
 fn (mut xlsx XLSX) parse_sheet(shared_strings []string) ![][]string {
   xml := xlsx.open_xml('xl/worksheets/sheet1.xml')!
-  doc := html.parse(xml)
-  rows := doc.get_tags(name: 'row')
+  tags := XMLParser.new(xml)
+  rows := tags.filter(it.name == 'row')
 
   mut data := [][]string{cap: rows.len}
 
