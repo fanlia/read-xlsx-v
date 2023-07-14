@@ -29,17 +29,29 @@ fn (mut xlsx XLSX) open_xml(name string) !string {
   return xml
 }
 
+struct Format {
+  formats []string
+  custom_formats map[string]string
+}
+
 fn (mut xlsx XLSX) parse_shared_strings() ![]string {
   xml := xlsx.open_xml('xl/sharedStrings.xml')!
   tags := XMLParser.new(xml)
   return tags.filter(it.name == 'si').map(it.text())
 }
 
-fn (mut xlsx XLSX) parse_formats() ![]string {
+fn (mut xlsx XLSX) parse_formats() !Format {
   xml := xlsx.open_xml('xl/styles.xml')!
   tags := XMLParser.new(xml)
   formats := tags.filter(it.name == 'xf' && it.parent.name == 'cellXfs').map(it.attributes['numFmtId'])
-  return formats
+  mut custom_formats := map[string]string{}
+  for num_fmt in tags.filter(it.name == 'numFmt') {
+    custom_formats[num_fmt.attributes['numFmtId']] = num_fmt.attributes['formatCode']
+  }
+  return Format {
+    formats: formats,
+    custom_formats: custom_formats,
+  }
 }
 
 fn r2ci(r string) !int {
@@ -52,7 +64,7 @@ fn r2ci(r string) !int {
   return sum - 1
 }
 
-fn (mut xlsx XLSX) parse_sheet(shared_strings []string, formats []string) ![][]string {
+fn (mut xlsx XLSX) parse_sheet(shared_strings []string, formats Format) ![][]string {
   xml := xlsx.open_xml('xl/worksheets/sheet1.xml')!
   tags := XMLParser.new(xml)
   rows := tags.filter(it.name == 'row')
@@ -78,30 +90,54 @@ fn (mut xlsx XLSX) parse_sheet(shared_strings []string, formats []string) ![][]s
         }
       } else if s := col.attributes['s'] {
         format_id := strconv.parse_int(s, 10, 0)!
-        if format := formats[format_id] {
-          // println('format=${format} v=${v}')
-          match format {
-            '14' {
-              t := excel_to_date(value)!
-              value = t.custom_format('YYYY-MM-DD')
+        if format := formats.formats[format_id] {
+          if v.len > 0 {
+            // println('format=${format} v=${v}')
+            match format {
+              '14' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD')
+              }
+              '15' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD')
+              }
+              '16' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD')
+              }
+              '17' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD')
+              }
+              '22' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD HH:mm:ss')
+              }
+              '57' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD')
+              }
+              '58' {
+                t := excel_to_date(value)!
+                value = t.custom_format('YYYY-MM-DD')
+              }
+              else {
+                if format in formats.custom_formats {
+                  format_code := formats.custom_formats[format]
+                  // println('format_code=${format_code}')
+                  if format_code.contains('yy') {
+                    t := excel_to_date(value)!
+                    if format_code.contains('h') {
+                      value = t.custom_format('YYYY-MM-DD HH:mm:ss')
+                    } else {
+                      value = t.custom_format('YYYY-MM-DD')
+                    }
+                  }
+                }
+              }
             }
-            '15' {
-              t := excel_to_date(value)!
-              value = t.custom_format('YYYY-MM-DD')
-            }
-            '16' {
-              t := excel_to_date(value)!
-              value = t.custom_format('YYYY-MM-DD')
-            }
-            '17' {
-              t := excel_to_date(value)!
-              value = t.custom_format('YYYY-MM-DD')
-            }
-            '22' {
-              t := excel_to_date(value)!
-              value = t.custom_format('YYYY-MM-DD HH:mm:ss')
-            }
-            else { }
+
           }
         }
       }
