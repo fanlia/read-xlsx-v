@@ -24,6 +24,7 @@ fn (mut xlsx XLSX) open_xml(name string) !string {
   xlsx.zp.open_entry(name)!
   defer { xlsx.zp.close_entry() }
   size := xlsx.zp.size()
+  if size == 0 { return '' }
   buf := xlsx.zp.read_entry()!
   xml := unsafe { tos(buf, int(size)) }
   return xml
